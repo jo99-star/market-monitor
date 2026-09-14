@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import websockets
-from typing import Callable
+from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class PolygonWebSocket:
         self._key = api_key
         self._symbols = symbols
         self._max_retries = 20
-        self.on_tick: Callable[[dict], None] | None = None
+        self.on_tick: Optional[Callable[[dict], None]] = None
         self._backoff_base = 1.0
         self._backoff_max = 60.0
 
