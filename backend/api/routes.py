@@ -35,7 +35,7 @@ async def snapshot_all():
     return result
 
 
-@router.post("/api/trigger/premarket")
+@router.get("/api/trigger/premarket")
 async def trigger_premarket():
     """Manually trigger a premarket data fetch (useful outside trading hours to seed Redis)."""
     if premarket_handler is None:
