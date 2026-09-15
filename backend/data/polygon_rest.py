@@ -58,18 +58,18 @@ class PolygonREST:
         return data.get("results", [])
 
     async def get_vix(self) -> dict:
-        """Fetch VIX and VVIX via indices snapshot (VIX is an index, not a stock)."""
+        """Fetch VIX and VVIX using previous-day aggregate (indices snapshot requires higher-tier plan)."""
         try:
-            r = await self._session.get(
-                f"{BASE}/v3/snapshot/indices",
-                params={**self._p(), "ticker_any_of": "I:VIX,I:VVIX"},
-            )
-            r.raise_for_status()
-            results = r.json().get("results", [])
-            values = {
-                item["ticker"]: (item.get("session") or {}).get("close")
-                for item in results
-            }
+            values = {}
+            for ticker in ["I:VIX", "I:VVIX"]:
+                r = await self._session.get(
+                    f"{BASE}/v2/aggs/ticker/{ticker}/prev",
+                    params={**self._p(), "adjusted": "true"},
+                )
+                r.raise_for_status()
+                results = r.json().get("results", [])
+                if results:
+                    values[ticker] = results[0].get("c")
             vix = values.get("I:VIX")
             vvix = values.get("I:VVIX")
             ratio = round(vvix / vix, 3) if vix else None

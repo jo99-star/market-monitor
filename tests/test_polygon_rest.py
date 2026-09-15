@@ -61,15 +61,21 @@ async def test_get_news_returns_list(client):
 async def test_get_vix_returns_ratio(client):
     mock_response = MagicMock()
     mock_response.raise_for_status = MagicMock()
-    mock_response.json.return_value = {
-        "results": [
-            {"ticker": "I:VIX", "session": {"close": 18.0}},
-            {"ticker": "I:VVIX", "session": {"close": 90.0}},
-        ]
-    }
+    # /v2/aggs/ticker/{ticker}/prev returns results array with OHLCV; c = close
+    mock_response.json.return_value = {"results": [{"c": 18.0}]}
 
-    async def fake_get(*a, **kw):
+    call_count = 0
+
+    async def fake_get(url, *a, **kw):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:  # second call = VVIX
+            r = MagicMock()
+            r.raise_for_status = MagicMock()
+            r.json.return_value = {"results": [{"c": 90.0}]}
+            return r
         return mock_response
+
     client._session.get = fake_get
 
     result = await client.get_vix()
