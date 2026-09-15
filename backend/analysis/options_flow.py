@@ -7,10 +7,11 @@ class OptionsFlowScanner:
         self._whale = whale_threshold
 
     def _estimate_premium(self, opt: dict) -> float:
-        last = opt.get("last_trade") or {}
-        price = last.get("price", 0) or 0
-        day_vol = (opt.get("day") or {}).get("volume", 0) or 0
-        return price * day_vol * 100  # total daily premium proxy (last price × daily volume)
+        day = opt.get("day") or {}
+        # vwap is a better proxy than last_trade.price (which can be a single stale print)
+        price = day.get("vwap") or (opt.get("last_trade") or {}).get("price", 0) or 0
+        day_vol = day.get("volume", 0) or 0
+        return price * day_vol * 100
 
     def _flow_type(self, opt: dict) -> str:
         conditions = set((opt.get("last_trade") or {}).get("conditions", []) or [])

@@ -2,7 +2,6 @@ from collections import defaultdict
 from typing import Optional
 
 BUCKET = 0.10
-GEX_NEUTRAL_THRESHOLD = 2_000_000_000  # SPY GEX regularly exceeds $1-5B; $500M is too tight
 
 
 class ChipProfile:
@@ -74,7 +73,7 @@ class ChipProfile:
 
         return {"vpoc": vpoc, "vah": vah, "val": val, "vpoc_bias": bias}
 
-    def compute_gex(self, options: list[dict], spot: float) -> dict:
+    def compute_gex(self, options: list[dict], spot: float, gex_threshold: float = 2_000_000_000) -> dict:
         """GEX = Gamma × OI × 100 × spot; dealer convention: calls −gamma (dealers short), puts +gamma (dealers long)."""
         gex_by_strike: dict[float, float] = defaultdict(float)
         gex_net = 0.0
@@ -87,12 +86,12 @@ class ChipProfile:
             oi = opt.get("open_interest", 0) or 0
             contract_type = opt["details"]["contract_type"]
             strike = opt["details"]["strike_price"]
-            sign = -1 if contract_type == "call" else 1  # dealers short calls (−gamma), long puts (+gamma)
+            sign = -1 if contract_type == "call" else 1
             gex = sign * gamma * oi * 100 * spot
             gex_net += gex
             gex_by_strike[strike] += gex
 
-        if abs(gex_net) < GEX_NEUTRAL_THRESHOLD:
+        if abs(gex_net) < gex_threshold:
             gex_signal = "neutral"
         elif gex_net > 0:
             gex_signal = "mean_revert"

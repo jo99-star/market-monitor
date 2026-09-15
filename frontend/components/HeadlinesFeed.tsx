@@ -9,8 +9,8 @@ export default function HeadlinesFeed({ headlines }: Props) {
 
   return (
     <ul className="space-y-2">
-      {headlines.map((h, i) => (
-        <li key={i} className="text-sm text-gray-300 flex gap-2">
+      {headlines.map((h) => (
+        <li key={h} className="text-sm text-gray-300 flex gap-2">
           <span className="text-gray-600 shrink-0 mt-0.5">•</span>
           <span>{h}</span>
         </li>

@@ -1,10 +1,11 @@
 from typing import Optional, Callable, Awaitable
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Header
 from fastapi.responses import JSONResponse
 
 router = APIRouter()
 cache = None                        # injected at startup
 symbols: list = []                  # injected at startup
+trigger_token: str = ""             # injected at startup; empty = no auth required
 premarket_handler: Optional[Callable[[], Awaitable[None]]] = None  # injected at startup
 
 
@@ -36,8 +37,10 @@ async def snapshot_all():
 
 
 @router.get("/api/trigger/premarket")
-async def trigger_premarket():
+async def trigger_premarket(x_admin_token: Optional[str] = Header(default=None)):
     """Manually trigger a premarket data fetch (useful outside trading hours to seed Redis)."""
+    if trigger_token and x_admin_token != trigger_token:
+        return JSONResponse(status_code=401, content={"error": "unauthorized"})
     if premarket_handler is None:
         return JSONResponse(status_code=503, content={"error": "handler not ready"})
     await premarket_handler()

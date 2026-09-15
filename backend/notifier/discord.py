@@ -2,6 +2,7 @@ import time
 import logging
 import httpx
 from datetime import datetime, timezone
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -16,23 +17,36 @@ class DiscordNotifier:
         self._url = webhook_url
         self._cooldown = cooldown_seconds
         self._last_sent: dict = {}
-        self._options_alerted: set = set()  # dedupe options alerts within a session
+        self._options_alerted: set = set()  # per-session dedup; reset each trading day
+        self._http: Optional[httpx.AsyncClient] = None
 
     def _can_send(self, key: str) -> bool:
         last = self._last_sent.get(key, 0)
         return time.time() - last > self._cooldown
 
+    def reset_alerted_set(self) -> None:
+        self._options_alerted.clear()
+
+    async def _get_http(self) -> httpx.AsyncClient:
+        if self._http is None or self._http.is_closed:
+            self._http = httpx.AsyncClient()
+        return self._http
+
+    async def close(self) -> None:
+        if self._http and not self._http.is_closed:
+            await self._http.aclose()
+
     async def _post(self, payload: dict) -> None:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(self._url, json=payload)
-            r.raise_for_status()
+        http = await self._get_http()
+        r = await http.post(self._url, json=payload)
+        r.raise_for_status()
 
     async def send_block_alert(self, alert: dict) -> None:
         sym = alert["symbol"]
         key = f"block:{sym}"
         if not self._can_send(key):
             return
-        self._last_sent[key] = time.time()  # set before HTTP to prevent retry storm on 429
+        self._last_sent[key] = time.time()
         color = COLOR_BULL if alert["side"] == "buy" else COLOR_BEAR
         direction = "买入" if alert["side"] == "buy" else "卖出"
         embed = {
@@ -68,9 +82,9 @@ class DiscordNotifier:
         }
         await self._post({"embeds": [embed]})
 
-    async def send_premarket_report(self, interpretation: dict, pcr: dict, vix: float, events: list) -> None:
+    async def send_premarket_report(self, symbol: str, interpretation: dict, pcr: dict, vix: float, events: list) -> None:
         embed = {
-            "title": "早盘报告",
+            "title": f"早盘报告 — {symbol}",
             "color": (COLOR_BULL if interpretation.get("bias") == "bullish"
                       else COLOR_BEAR if interpretation.get("bias") == "bearish"
                       else COLOR_INFO),

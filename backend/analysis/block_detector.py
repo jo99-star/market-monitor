@@ -1,5 +1,5 @@
 import time
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field
 
 BUY_CONDITIONS: set = set()  # no reliable Polygon buy code; use tick rule
@@ -21,7 +21,7 @@ class BlockDetector:
         self._windows: dict[str, _Window] = defaultdict(_Window)
         self._last_price: dict[str, float] = {}
         self._pending_alerts: list[dict] = []
-        self._seen: set = set()
+        self._seen: OrderedDict = OrderedDict()  # FIFO dedup; OrderedDict preserves insertion order
 
     def _determine_side(self, tick: dict) -> str:
         conditions = set(tick.get("c", []) or [])
@@ -48,9 +48,10 @@ class BlockDetector:
         dedup_key = (tick["sym"], tick["t"], tick["p"], tick["s"])
         if dedup_key in self._seen:
             return
-        self._seen.add(dedup_key)
+        self._seen[dedup_key] = None
         if len(self._seen) > 10_000:
-            self._seen = set(list(self._seen)[5_000:])  # drop oldest half (arbitrary order, but bounded)
+            for _ in range(5_000):
+                self._seen.popitem(last=False)  # drop oldest entries (FIFO)
 
         sym = tick["sym"]
         side = tick.get("_side") or self._determine_side(tick)

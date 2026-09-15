@@ -21,15 +21,10 @@ class RedisCache:
             await self._redis.aclose()
 
     async def write_snapshot(self, symbol: str, data: dict) -> None:
-        """Atomic write: set tmp key → RENAME to latest, preventing dirty reads."""
         data["written_at"] = datetime.now(timezone.utc).isoformat()
         payload = json.dumps(data)
-        tmp_key = f"snapshot:{symbol}:tmp"
-        final_key = f"snapshot:{symbol}:latest"
         try:
-            await self._redis.set(tmp_key, payload, ex=self._ttl)
-            await self._redis.rename(tmp_key, final_key)
-            await self._redis.expire(final_key, self._ttl)
+            await self._redis.set(f"snapshot:{symbol}:latest", payload, ex=self._ttl)
         except Exception as e:
             logger.error(f"Redis write failed for {symbol}: {e}")
 

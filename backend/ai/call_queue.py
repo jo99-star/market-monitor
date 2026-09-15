@@ -35,12 +35,15 @@ class CallQueue:
                 queue.task_done()
 
     async def start(self) -> None:
+        # Two whale workers so real-time alerts don't queue behind scheduled AI tasks
         self._tasks = [
-            asyncio.create_task(self._worker(self._whale_q, "whale")),
+            asyncio.create_task(self._worker(self._whale_q, "whale-1")),
+            asyncio.create_task(self._worker(self._whale_q, "whale-2")),
             asyncio.create_task(self._worker(self._regular_q, "regular")),
         ]
 
     async def stop(self) -> None:
         await self._whale_q.put(None)
+        await self._whale_q.put(None)  # one sentinel per whale worker
         await self._regular_q.put(None)
         await asyncio.gather(*self._tasks, return_exceptions=True)

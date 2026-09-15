@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import random
 import websockets
 from typing import Callable, Optional
 
@@ -27,7 +28,6 @@ class PolygonWebSocket:
         subs = ",".join(f"T.{s}" for s in self._symbols)
         async with websockets.connect(WS_URL) as ws:
             await ws.send(json.dumps({"action": "auth", "params": self._key}))
-            # Read until auth_success (Polygon sends a "connected" frame first)
             for _ in range(3):
                 raw = await asyncio.wait_for(ws.recv(), timeout=10.0)
                 msgs = json.loads(raw)
@@ -50,17 +50,21 @@ class PolygonWebSocket:
         delay = self._backoff_base
         attempt = 0
         while True:
+            connected_at = asyncio.get_event_loop().time()
             try:
                 await self._connect_once()
                 return  # graceful close
             except Exception as e:
                 attempt += 1
+                duration = asyncio.get_event_loop().time() - connected_at
+                if duration > 60:
+                    delay = self._backoff_base  # reset if connection was stable
                 logger.warning(f"WS disconnect (attempt {attempt}): {e}")
-                await asyncio.sleep(min(delay, self._backoff_max))
+                jittered = delay * (0.5 + random.random())
+                await asyncio.sleep(min(jittered, self._backoff_max))
                 delay = min(delay * 2, self._backoff_max)
 
     async def run(self) -> None:
-        # Outer loop: restart even after repeated failures — never give up
         while True:
             try:
                 await self._connect_with_backoff()

@@ -12,9 +12,9 @@ export default function AlertsFeed({ alerts }: Props) {
 
   return (
     <div className="space-y-2">
-      {alerts.map((a, i) => (
+      {alerts.map((a) => (
         <div
-          key={i}
+          key={`${a.symbol}-${a.strike}-${a.contract_type}-${a.expiry}`}
           className={`flex items-start gap-2 px-3 py-2 rounded text-sm border ${
             a.level === 'whale'
               ? 'border-yellow-800 bg-yellow-950/40'

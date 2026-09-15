@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,13 @@ class SentimentAnalyzer:
     def _vader_score(self, text: str) -> float:
         return self._vader.polarity_scores(text)["compound"]
 
-    def compute_pcr(self, options: list[dict]) -> dict:
+    def compute_pcr(self, options: list[dict], thresholds: Optional[dict] = None) -> dict:
+        t = thresholds or {}
+        oi_bull = t.get("oi_bull", self.OI_BULL)
+        oi_bear = t.get("oi_bear", self.OI_BEAR)
+        vol_bull = t.get("vol_bull", self.VOL_BULL)
+        vol_bear = t.get("vol_bear", self.VOL_BEAR)
+
         put_oi = call_oi = put_vol = call_vol = 0
         for opt in options:
             ct = opt["details"]["contract_type"]
@@ -33,8 +40,8 @@ class SentimentAnalyzer:
         oi_pcr = round(put_oi / call_oi, 3) if call_oi else 0
         vol_pcr = round(put_vol / call_vol, 3) if call_vol else 0
 
-        oi_signal = "bullish" if oi_pcr < self.OI_BULL else "bearish" if oi_pcr > self.OI_BEAR else "neutral"
-        vol_signal = "bullish" if vol_pcr < self.VOL_BULL else "bearish" if vol_pcr > self.VOL_BEAR else "neutral"
+        oi_signal = "bullish" if oi_pcr < oi_bull else "bearish" if oi_pcr > oi_bear else "neutral"
+        vol_signal = "bullish" if vol_pcr < vol_bull else "bearish" if vol_pcr > vol_bear else "neutral"
 
         return {
             "oi_pcr": oi_pcr,

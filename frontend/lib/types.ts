@@ -29,24 +29,24 @@ export interface AIInterpretation {
 }
 
 export interface Snapshot {
-  vpoc: number
-  vah: number
-  val: number
-  vpoc_bias: 'bullish' | 'bearish' | 'neutral'
-  gex_net: number
-  gex_signal: 'mean_revert' | 'trend_amplify' | 'neutral'
-  max_pain: number
-  gex_levels: GexLevel[]
-  oi_pcr: number
-  vol_pcr: number
-  oi_pcr_signal: string
-  vol_pcr_signal: string
-  spot: number
+  vpoc?: number
+  vah?: number
+  val?: number
+  vpoc_bias?: 'bullish' | 'bearish' | 'neutral'
+  gex_net?: number
+  gex_signal?: 'mean_revert' | 'trend_amplify' | 'neutral'
+  max_pain?: number
+  gex_levels?: GexLevel[]
+  oi_pcr?: number
+  vol_pcr?: number
+  oi_pcr_signal?: string
+  vol_pcr_signal?: string
+  spot?: number
   vix?: number
   vvix_ratio?: number
   options_count?: number
   options_alerts?: OptionsAlert[]
   top_headlines?: string[]
   interpretation?: AIInterpretation
-  written_at: string
+  written_at?: string
 }

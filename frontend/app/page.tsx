@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import useSWR from 'swr'
 import { fetchSnapshot } from '@/lib/api'
 import { Snapshot } from '@/lib/types'
@@ -12,10 +12,11 @@ import HeadlinesFeed from '@/components/HeadlinesFeed'
 import MetricsRow from '@/components/MetricsRow'
 import StatGrid from '@/components/StatGrid'
 
-const SYMBOLS = ['SPY', 'QQQ', 'SOXX']
+const SYMBOLS = ['SPY', 'QQQ', 'SOXX'] as const
+type Symbol = typeof SYMBOLS[number]
 const REFRESH_MS = 60_000
 
-function useSnapshot(symbol: string) {
+function useSnapshot(symbol: Symbol) {
   return useSWR<Snapshot | null>(
     symbol,
     () => fetchSnapshot(symbol),
@@ -24,22 +25,24 @@ function useSnapshot(symbol: string) {
 }
 
 export default function Dashboard() {
-  const [active, setActive] = useState('SPY')
-  const { data: snap, isLoading } = useSnapshot(active)
+  const [active, setActive] = useState<Symbol>('SPY')
 
-  // Prefetch the other two symbols
-  const others = SYMBOLS.filter(s => s !== active)
-  useSnapshot(others[0])
-  useSnapshot(others[1])
+  // Always call all three hooks unconditionally (React rules of hooks)
+  const spySWR = useSnapshot('SPY')
+  const qqqSWR = useSnapshot('QQQ')
+  const soxxSWR = useSnapshot('SOXX')
+
+  const swrMap = { SPY: spySWR, QQQ: qqqSWR, SOXX: soxxSWR }
+  const { data: snap, isLoading, error } = swrMap[active]
 
   return (
     <div className="min-h-screen bg-gray-950">
       <Header
         activeSymbol={active}
-        symbols={SYMBOLS}
+        symbols={[...SYMBOLS]}
         snapshot={snap ?? null}
         loading={isLoading}
-        onSymbolChange={setActive}
+        onSymbolChange={(s) => setActive(s as Symbol)}
       />
 
       {snap ? (
@@ -55,7 +58,7 @@ export default function Dashboard() {
               <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">
                 GEX Levels by Strike
               </div>
-              <GexChart levels={snap.gex_levels ?? []} spot={snap.spot} />
+              <GexChart levels={snap.gex_levels ?? []} spot={snap.spot ?? 0} />
             </div>
 
             <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
@@ -80,6 +83,8 @@ export default function Dashboard() {
               <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
               <p className="text-gray-500 text-sm">Loading {active} snapshot…</p>
             </>
+          ) : error ? (
+            <p className="text-red-500 text-sm">Backend unreachable — check connection</p>
           ) : (
             <p className="text-gray-500 text-sm">
               No data available — backend may be starting up

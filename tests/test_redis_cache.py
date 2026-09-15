@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 from backend.cache.redis_cache import RedisCache
 
 
-async def test_write_uses_atomic_rename():
+async def test_write_uses_direct_set():
     cache = RedisCache(url="redis://localhost:6379", ttl=600)
     mock_redis = AsyncMock()
     cache._redis = mock_redis
@@ -12,8 +12,8 @@ async def test_write_uses_atomic_rename():
     await cache.write_snapshot("SPY", {"vpoc": 580.0, "spot": 583.0})
 
     calls = mock_redis.set.call_args_list
-    assert any("tmp" in str(c) for c in calls), "Expected tmp key write"
-    mock_redis.rename.assert_called_once()
+    assert any("latest" in str(c) for c in calls), "Expected direct write to latest key"
+    mock_redis.rename.assert_not_called()
 
 
 async def test_read_returns_parsed_snapshot():

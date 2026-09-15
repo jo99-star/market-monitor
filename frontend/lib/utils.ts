@@ -12,7 +12,8 @@ export function fmtM(n: number | undefined | null): string {
   return `${sign}${(abs / 1e3).toFixed(0)}K`
 }
 
-export function fmtPremium(n: number): string {
+export function fmtPremium(n: number | undefined | null): string {
+  if (n == null || isNaN(n)) return '—'
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`
   return `$${n.toFixed(0)}`
@@ -20,7 +21,7 @@ export function fmtPremium(n: number): string {
 
 export function timeAgo(iso: string): { text: string; stale: boolean } {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000
-  const stale = diff > 120
+  const stale = diff > 65
   if (diff < 60) return { text: `${Math.floor(diff)}s ago`, stale }
   if (diff < 3600) return { text: `${Math.floor(diff / 60)}m ago`, stale }
   return { text: `${Math.floor(diff / 3600)}h ago`, stale }

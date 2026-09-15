@@ -48,6 +48,8 @@ export default function GexChart({ levels, spot }: Props) {
         <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
         <XAxis
           dataKey="price"
+          type="number"
+          domain={['dataMin', 'dataMax']}
           tick={{ fill: '#6b7280', fontSize: 10 }}
           tickFormatter={(v) => fmt(v, 0)}
           interval="preserveStartEnd"
