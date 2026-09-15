@@ -50,12 +50,13 @@ def test_ignores_small_premium():
     assert len(alerts) == 0
 
 
-def test_detects_sweep_condition():
+def test_flow_type_defaults_to_block():
+    """All options are classified as 'block'; Polygon has no reliable sweep condition code."""
     scanner = OptionsFlowScanner(alert_threshold=500_000, whale_threshold=1_000_000)
     option = make_option("call", 585, 600_000, 3000, 0.17, conditions=[71])
     alerts = scanner.scan([option], spot=583.0)
     assert len(alerts) == 1
-    assert alerts[0]["flow_type"] == "sweep"
+    assert alerts[0]["flow_type"] == "block"
 
 
 def test_sorted_by_premium_descending():

@@ -23,12 +23,12 @@ export default function AlertsFeed({ alerts }: Props) {
         >
           <span
             className={`mt-0.5 px-1.5 py-0.5 rounded text-xs font-bold uppercase shrink-0 ${
-              a.type === 'call'
+              a.contract_type === 'call'
                 ? 'bg-green-900 text-green-300'
                 : 'bg-red-900 text-red-300'
             }`}
           >
-            {a.type}
+            {a.contract_type}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">

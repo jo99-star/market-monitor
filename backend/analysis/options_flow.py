@@ -1,4 +1,4 @@
-SWEEP_CONDITIONS = {71}  # Polygon multi-exchange sweep condition
+SWEEP_CONDITIONS: set = set()  # Polygon has no reliable sweep condition code; code 71 is "Contingent Trade"
 
 
 class OptionsFlowScanner:
@@ -9,8 +9,8 @@ class OptionsFlowScanner:
     def _estimate_premium(self, opt: dict) -> float:
         last = opt.get("last_trade") or {}
         price = last.get("price", 0) or 0
-        size = last.get("size", 0) or 0
-        return price * size * 100  # 1 contract = 100 shares
+        day_vol = (opt.get("day") or {}).get("volume", 0) or 0
+        return price * day_vol * 100  # total daily premium proxy (last price × daily volume)
 
     def _flow_type(self, opt: dict) -> str:
         conditions = set((opt.get("last_trade") or {}).get("conditions", []) or [])

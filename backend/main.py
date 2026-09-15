@@ -38,30 +38,29 @@ _interpreter = Interpreter(api_key=settings.groq_api_key)
 
 async def _handle_ai_task(task: dict) -> None:
     task_type = task.get("type")
+    sym = task.get("symbol", settings.symbols[0])
     if task_type == "premarket":
-        interp = await _interpreter.interpret(task.get("data", {}))
         snap = task.get("data", {})
-        for sym in settings.symbols:
-            existing = await _cache.read_snapshot(sym) or {}
-            existing["interpretation"] = interp
-            await _cache.write_snapshot(sym, existing)
+        interp = await _interpreter.interpret(snap)
+        existing = await _cache.read_snapshot(sym) or {}
+        existing["interpretation"] = interp
+        await _cache.write_snapshot(sym, existing)
         pcr = {"oi_pcr": snap.get("oi_pcr"), "oi_pcr_signal": snap.get("oi_pcr_signal")}
-        await _discord.send_premarket_report(interp, pcr, snap.get("vix", 0), snap.get("events", []))
+        if sym == settings.symbols[0]:  # send one Discord premarket report (SPY primary)
+            await _discord.send_premarket_report(interp, pcr, snap.get("vix", 0), snap.get("events", []))
     elif task_type == "hourly":
-        interp = await _interpreter.interpret(task.get("data", {}))
-        for sym in settings.symbols:
-            snap = await _cache.read_snapshot(sym) or {}
-            snap["interpretation"] = interp
-            await _cache.write_snapshot(sym, snap)
-            await _discord.send_hourly_brief(sym, {**snap, "interpretation": interp})
+        snap = await _cache.read_snapshot(sym) or {}
+        interp = await _interpreter.interpret(snap)
+        snap["interpretation"] = interp
+        await _cache.write_snapshot(sym, snap)
+        await _discord.send_hourly_brief(sym, snap)
     elif task_type == "close":
-        interp = await _interpreter.interpret(task.get("data", {}))
-        snaps = {}
-        for sym in settings.symbols:
-            snaps[sym] = await _cache.read_snapshot(sym) or {}
-            snaps[sym]["interpretation"] = interp
-            await _cache.write_snapshot(sym, snaps[sym])
-        await _discord.send_closing_summary(snaps, interp)
+        snap = await _cache.read_snapshot(sym) or {}
+        interp = await _interpreter.interpret(snap)
+        snap["interpretation"] = interp
+        await _cache.write_snapshot(sym, snap)
+        if sym == settings.symbols[0]:  # send one Discord close summary (SPY primary)
+            await _discord.send_closing_summary({sym: snap}, interp)
 
 
 _call_queue = CallQueue(handler=_handle_ai_task)
@@ -119,9 +118,8 @@ async def _premarket_job() -> None:
         }
         snaps[sym] = snap
         await _cache.write_snapshot(sym, snap)
-    # Use first symbol (SPY) as primary data for AI interpretation
-    primary = snaps.get(settings.symbols[0], {})
-    await _call_queue.enqueue({"priority": "whale", "type": "premarket", "data": primary})
+    for sym in settings.symbols:
+        await _call_queue.enqueue({"priority": "whale", "type": "premarket", "data": snaps[sym], "symbol": sym})
 
 
 async def _options_refresh_job() -> None:
@@ -143,17 +141,13 @@ async def _options_refresh_job() -> None:
 
 
 async def _hourly_job() -> None:
-    snap = {}
     for sym in settings.symbols:
-        snap[sym] = await _cache.read_snapshot(sym) or {}
-    await _call_queue.enqueue({"priority": "regular", "type": "hourly", "data": snap})
+        await _call_queue.enqueue({"priority": "regular", "type": "hourly", "symbol": sym})
 
 
 async def _close_job() -> None:
-    snap = {}
     for sym in settings.symbols:
-        snap[sym] = await _cache.read_snapshot(sym) or {}
-    await _call_queue.enqueue({"priority": "whale", "type": "close", "data": snap})
+        await _call_queue.enqueue({"priority": "whale", "type": "close", "symbol": sym})
 
 
 _scheduler = MarketScheduler(

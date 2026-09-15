@@ -31,6 +31,7 @@ class DiscordNotifier:
         key = f"block:{sym}"
         if not self._can_send(key):
             return
+        self._last_sent[key] = time.time()  # set before HTTP to prevent retry storm on 429
         color = COLOR_BULL if alert["side"] == "buy" else COLOR_BEAR
         direction = "买入" if alert["side"] == "buy" else "卖出"
         embed = {
@@ -44,13 +45,13 @@ class DiscordNotifier:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         await self._post({"embeds": [embed]})
-        self._last_sent[key] = time.time()
 
     async def send_options_alert(self, alert: dict) -> None:
         sym = alert["symbol"]
         key = f"options:{sym}:{alert['strike']}:{alert['contract_type']}"
         if not self._can_send(key):
             return
+        self._last_sent[key] = time.time()  # set before HTTP to prevent retry storm on 429
         color = COLOR_BULL if alert["contract_type"] == "call" else COLOR_BEAR
         embed = {
             "title": f"期权异动 — {sym}",

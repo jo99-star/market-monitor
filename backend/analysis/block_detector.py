@@ -2,8 +2,8 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-BUY_CONDITIONS = {41}
-SELL_CONDITIONS = {38}
+BUY_CONDITIONS: set = set()  # no reliable Polygon buy code; use tick rule
+SELL_CONDITIONS = {41}       # code 41 = "Sold Last" = seller-initiated
 
 
 @dataclass
@@ -50,7 +50,7 @@ class BlockDetector:
             return
         self._seen.add(dedup_key)
         if len(self._seen) > 10_000:
-            self._seen = set(list(self._seen)[-5_000:])
+            self._seen = set(list(self._seen)[5_000:])  # drop oldest half (arbitrary order, but bounded)
 
         sym = tick["sym"]
         side = tick.get("_side") or self._determine_side(tick)

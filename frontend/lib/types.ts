@@ -7,7 +7,7 @@ export interface OptionsAlert {
   symbol: string
   expiry?: string
   strike: number
-  type: 'call' | 'put'
+  contract_type: 'call' | 'put'
   premium: number
   flow_type?: string
   iv?: number

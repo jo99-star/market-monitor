@@ -12,13 +12,38 @@ def make_option_snap(contract_type, oi, volume):
 
 def test_oi_pcr_bearish_signal():
     analyzer = SentimentAnalyzer()
+    # OI PCR = 1.5; bearish threshold for SPY is > 1.8, so 1.5 is neutral
     options = [
         make_option_snap("put", 15000, 500),
         make_option_snap("call", 10000, 800),
     ]
     result = analyzer.compute_pcr(options)
     assert result["oi_pcr"] == pytest.approx(1.5, rel=0.01)
+    assert result["oi_pcr_signal"] == "neutral"  # 1.2 < 1.5 < 1.8 → neutral (SPY calibration)
+
+
+def test_oi_pcr_bearish_above_threshold():
+    analyzer = SentimentAnalyzer()
+    # OI PCR = 19000/10000 = 1.9 > 1.8 → bearish
+    options = [
+        make_option_snap("put", 19000, 500),
+        make_option_snap("call", 10000, 800),
+    ]
+    result = analyzer.compute_pcr(options)
+    assert result["oi_pcr"] > 1.8
     assert result["oi_pcr_signal"] == "bearish"
+
+
+def test_oi_pcr_bullish_below_threshold():
+    analyzer = SentimentAnalyzer()
+    # OI PCR = 10000/12000 ≈ 0.83 < 1.2 → bullish
+    options = [
+        make_option_snap("put", 10000, 500),
+        make_option_snap("call", 12000, 800),
+    ]
+    result = analyzer.compute_pcr(options)
+    assert result["oi_pcr"] < 1.2
+    assert result["oi_pcr_signal"] == "bullish"
 
 
 def test_volume_pcr_bullish_signal():

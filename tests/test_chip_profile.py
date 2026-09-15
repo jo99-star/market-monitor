@@ -45,28 +45,46 @@ def test_vpoc_bias_below_vpoc():
     assert result["vpoc_bias"] == "bearish"
 
 
-def test_gex_positive_for_heavy_call_oi():
+def test_gex_dealer_sign_convention():
+    """Dealer GEX: heavy put OI → dealers long gamma → net positive → mean_revert."""
     cp = ChipProfile()
-    # Call GEX = 0.05 × 200,000 × 100 × 580 = 580,000,000 > 500M threshold
-    # Put  GEX = 0.03 × 20,000  × 100 × 580 = 34,800,000
-    # Net positive → mean_revert
+    # Put-heavy: dealers long gamma on puts → positive GEX → mean_revert
+    # Put GEX  = +1 × 0.05 × 500,000 × 100 × 580 = +1,450,000,000 > 2B threshold? No, just under.
+    # Use OI=700k to exceed 2B:  0.05 × 700,000 × 100 × 580 = 2,030,000,000 > 2B
+    options = [
+        {
+            "details": {"contract_type": "put", "strike_price": 575, "expiration_date": "2026-09-20"},
+            "greeks": {"gamma": 0.05},
+            "open_interest": 700_000,
+            "day": {"volume": 5000},
+        },
+        {
+            "details": {"contract_type": "call", "strike_price": 580, "expiration_date": "2026-09-20"},
+            "greeks": {"gamma": 0.01},
+            "open_interest": 10_000,
+            "day": {"volume": 1000},
+        },
+    ]
+    result = cp.compute_gex(options, spot=580.0)
+    assert result["gex_net"] > 0, "Put-heavy → dealers long gamma → positive GEX"
+    assert result["gex_signal"] == "mean_revert"
+
+
+def test_gex_trend_amplify_for_heavy_call_oi():
+    """Heavy call OI → dealers short gamma → negative GEX → trend_amplify."""
+    cp = ChipProfile()
+    # Call GEX = -1 × 0.05 × 700,000 × 100 × 580 = -2,030,000,000 < -2B threshold
     options = [
         {
             "details": {"contract_type": "call", "strike_price": 580, "expiration_date": "2026-09-20"},
             "greeks": {"gamma": 0.05},
-            "open_interest": 200_000,
+            "open_interest": 700_000,
             "day": {"volume": 5000},
-        },
-        {
-            "details": {"contract_type": "put", "strike_price": 575, "expiration_date": "2026-09-20"},
-            "greeks": {"gamma": 0.03},
-            "open_interest": 20_000,
-            "day": {"volume": 2000},
         },
     ]
     result = cp.compute_gex(options, spot=580.0)
-    assert result["gex_net"] > 0
-    assert result["gex_signal"] == "mean_revert"
+    assert result["gex_net"] < 0, "Call-heavy → dealers short gamma → negative GEX"
+    assert result["gex_signal"] == "trend_amplify"
 
 
 def test_gex_neutral_when_below_threshold():

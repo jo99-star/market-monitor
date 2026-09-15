@@ -4,7 +4,7 @@ from groq import AsyncGroq
 
 logger = logging.getLogger(__name__)
 
-MODEL = "qwen/qwen3.8-27b"
+MODEL = "qwen/qwen3-27b"
 
 SYSTEM_PROMPT = """You are a professional U.S. equity market analyst specializing in SPY and QQQ intraday flow analysis. Your job is to interpret real-time market microstructure data and provide actionable intraday price range predictions.
 

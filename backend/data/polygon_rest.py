@@ -66,7 +66,10 @@ class PolygonREST:
             )
             r.raise_for_status()
             results = r.json().get("results", [])
-            values = {item["ticker"]: item.get("value") for item in results}
+            values = {
+                item["ticker"]: (item.get("session") or {}).get("close")
+                for item in results
+            }
             vix = values.get("I:VIX")
             vvix = values.get("I:VVIX")
             ratio = round(vvix / vix, 3) if vix else None

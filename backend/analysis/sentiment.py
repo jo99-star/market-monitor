@@ -5,10 +5,11 @@ logger = logging.getLogger(__name__)
 
 
 class SentimentAnalyzer:
-    OI_BULL = 0.7
-    OI_BEAR = 1.3
-    VOL_BULL = 0.8
-    VOL_BEAR = 1.2
+    # SPY options chain is structurally put-heavy (hedging demand); calibrated to historical mean ~1.4-1.6
+    OI_BULL = 1.2
+    OI_BEAR = 1.8
+    VOL_BULL = 0.9
+    VOL_BEAR = 1.1
 
     def __init__(self):
         self._vader = SentimentIntensityAnalyzer()

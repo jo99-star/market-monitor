@@ -62,7 +62,7 @@ export default function GexChart({ levels, spot }: Props) {
           formatter={(v: number) => [formatGex(v), 'GEX']}
           labelFormatter={(l) => `Strike $${l}`}
         />
-        <ReferenceLine x={spot} stroke="#fbbf24" strokeDasharray="4 2" label={{ value: 'spot', fill: '#fbbf24', fontSize: 10 }} />
+        <ReferenceLine x={data[Math.max(0, spotIdx - start)]?.price ?? data[0]?.price} stroke="#fbbf24" strokeDasharray="4 2" label={{ value: 'spot', fill: '#fbbf24', fontSize: 10 }} />
         <Bar dataKey="gex">
           {data.map((entry, i) => (
             <Cell key={i} fill={entry.gex >= 0 ? '#4ade80' : '#f87171'} />

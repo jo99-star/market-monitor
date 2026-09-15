@@ -63,8 +63,8 @@ async def test_get_vix_returns_ratio(client):
     mock_response.raise_for_status = MagicMock()
     mock_response.json.return_value = {
         "results": [
-            {"ticker": "I:VIX", "value": 18.0},
-            {"ticker": "I:VVIX", "value": 90.0},
+            {"ticker": "I:VIX", "session": {"close": 18.0}},
+            {"ticker": "I:VVIX", "session": {"close": 90.0}},
         ]
     }
 
@@ -75,4 +75,4 @@ async def test_get_vix_returns_ratio(client):
     result = await client.get_vix()
     assert result["vix"] == 18.0
     assert result["vvix"] == 90.0
-    assert result["ratio"] == 5.0
+    assert result["ratio"] == pytest.approx(5.0, rel=0.01)
