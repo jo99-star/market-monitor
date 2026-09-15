@@ -58,21 +58,24 @@ class PolygonREST:
         return data.get("results", [])
 
     async def get_vix(self) -> dict:
-        """Fetch VIX and VVIX using previous-day aggregate (indices snapshot requires higher-tier plan)."""
+        """Fetch VIX and VVIX from Yahoo Finance (Polygon indices requires higher-tier plan)."""
         try:
             values = {}
-            for ticker in ["I:VIX", "I:VVIX"]:
+            for yf_symbol, key in [("%5EVIX", "vix"), ("%5EVVIX", "vvix")]:
                 r = await self._session.get(
-                    f"{BASE}/v2/aggs/ticker/{ticker}/prev",
-                    params={**self._p(), "adjusted": "true"},
+                    f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}",
+                    params={"interval": "1d", "range": "5d"},
+                    headers={"User-Agent": "Mozilla/5.0"},
                 )
                 r.raise_for_status()
-                results = r.json().get("results", [])
-                if results:
-                    values[ticker] = results[0].get("c")
-            vix = values.get("I:VIX")
-            vvix = values.get("I:VVIX")
-            ratio = round(vvix / vix, 3) if vix else None
+                result = (r.json().get("chart") or {}).get("result") or []
+                if result:
+                    price = (result[0].get("meta") or {}).get("regularMarketPrice")
+                    if price:
+                        values[key] = price
+            vix = values.get("vix")
+            vvix = values.get("vvix")
+            ratio = round(vvix / vix, 3) if vix and vvix else None
             return {"vix": vix, "vvix": vvix, "ratio": ratio}
         except Exception as e:
             logger.error(f"VIX fetch failed: {e}")
