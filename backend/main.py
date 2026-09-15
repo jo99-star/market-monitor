@@ -41,18 +41,26 @@ async def _handle_ai_task(task: dict) -> None:
     if task_type == "premarket":
         interp = await _interpreter.interpret(task.get("data", {}))
         snap = task.get("data", {})
+        for sym in settings.symbols:
+            existing = await _cache.read_snapshot(sym) or {}
+            existing["interpretation"] = interp
+            await _cache.write_snapshot(sym, existing)
         pcr = {"oi_pcr": snap.get("oi_pcr"), "oi_pcr_signal": snap.get("oi_pcr_signal")}
         await _discord.send_premarket_report(interp, pcr, snap.get("vix", 0), snap.get("events", []))
     elif task_type == "hourly":
         interp = await _interpreter.interpret(task.get("data", {}))
         for sym in settings.symbols:
             snap = await _cache.read_snapshot(sym) or {}
+            snap["interpretation"] = interp
+            await _cache.write_snapshot(sym, snap)
             await _discord.send_hourly_brief(sym, {**snap, "interpretation": interp})
     elif task_type == "close":
         interp = await _interpreter.interpret(task.get("data", {}))
         snaps = {}
         for sym in settings.symbols:
             snaps[sym] = await _cache.read_snapshot(sym) or {}
+            snaps[sym]["interpretation"] = interp
+            await _cache.write_snapshot(sym, snaps[sym])
         await _discord.send_closing_summary(snaps, interp)
 
 
