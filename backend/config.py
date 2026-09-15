@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     gex_neutral_threshold: float = 500_000_000
     block_window_seconds: int = 30
     options_refresh_minutes: int = 10
-    snapshot_ttl_seconds: int = 7200
+    snapshot_ttl_seconds: int = 86400
     discord_cooldown_seconds: int = 300
 
     model_config = {"env_file": ".env"}
