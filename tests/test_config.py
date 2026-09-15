@@ -4,7 +4,6 @@ from backend.config import Settings
 def test_settings_defaults():
     s = Settings(
         polygon_api_key="key",
-        anthropic_api_key="akey",
         discord_webhook_url="https://discord.com/test",
         redis_url="redis://localhost:6379",
     )

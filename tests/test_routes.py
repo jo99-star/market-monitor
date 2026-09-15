@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 # Set dummy env vars before importing app
 os.environ.setdefault("POLYGON_API_KEY", "test_key")
-os.environ.setdefault("ANTHROPIC_API_KEY", "test_anthropic")
+os.environ.setdefault("GROQ_API_KEY", "gsk_test")
 os.environ.setdefault("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/test")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
 

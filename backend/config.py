@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     polygon_api_key: str
-    anthropic_api_key: str
+    groq_api_key: str = ""
     discord_webhook_url: str
     redis_url: str
     newsapi_key: str = ""

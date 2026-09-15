@@ -33,7 +33,7 @@ _chip = {s: ChipProfile() for s in settings.symbols}
 _options_scanner = OptionsFlowScanner(settings.options_alert_threshold, settings.options_whale_threshold)
 _sentiment = SentimentAnalyzer()
 _discord = DiscordNotifier(settings.discord_webhook_url, settings.discord_cooldown_seconds)
-_interpreter = Interpreter(api_key=settings.anthropic_api_key)
+_interpreter = Interpreter(api_key=settings.groq_api_key)
 
 
 async def _handle_ai_task(task: dict) -> None:
