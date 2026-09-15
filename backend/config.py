@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     reddit_client_id: str = ""
     reddit_client_secret: str = ""
     reddit_user_agent: str = "market-monitor/1.0"
-    symbols: list[str] = ["SPY", "QQQ"]
+    symbols: list[str] = ["SPY", "QQQ", "SOXX"]
 
     stock_alert_threshold: float = 20_000_000
     stock_whale_threshold: float = 50_000_000

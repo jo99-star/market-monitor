@@ -16,6 +16,7 @@ class DiscordNotifier:
         self._url = webhook_url
         self._cooldown = cooldown_seconds
         self._last_sent: dict = {}
+        self._options_alerted: set = set()  # dedupe options alerts within a session
 
     def _can_send(self, key: str) -> bool:
         last = self._last_sent.get(key, 0)
@@ -48,10 +49,10 @@ class DiscordNotifier:
 
     async def send_options_alert(self, alert: dict) -> None:
         sym = alert["symbol"]
-        key = f"options:{sym}:{alert['strike']}:{alert['contract_type']}"
-        if not self._can_send(key):
+        key = f"options:{sym}:{alert['strike']}:{alert['contract_type']}:{alert['expiry']}"
+        if key in self._options_alerted:
             return
-        self._last_sent[key] = time.time()  # set before HTTP to prevent retry storm on 429
+        self._options_alerted.add(key)
         color = COLOR_BULL if alert["contract_type"] == "call" else COLOR_BEAR
         embed = {
             "title": f"期权异动 — {sym}",
@@ -66,7 +67,6 @@ class DiscordNotifier:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         await self._post({"embeds": [embed]})
-        self._last_sent[key] = time.time()
 
     async def send_premarket_report(self, interpretation: dict, pcr: dict, vix: float, events: list) -> None:
         embed = {

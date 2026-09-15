@@ -12,7 +12,7 @@ import HeadlinesFeed from '@/components/HeadlinesFeed'
 import MetricsRow from '@/components/MetricsRow'
 import StatGrid from '@/components/StatGrid'
 
-const SYMBOLS = ['SPY', 'QQQ']
+const SYMBOLS = ['SPY', 'QQQ', 'SOXX']
 const REFRESH_MS = 60_000
 
 function useSnapshot(symbol: string) {
@@ -27,8 +27,10 @@ export default function Dashboard() {
   const [active, setActive] = useState('SPY')
   const { data: snap, isLoading } = useSnapshot(active)
 
-  // Prefetch the other symbol
-  useSnapshot(active === 'SPY' ? 'QQQ' : 'SPY')
+  // Prefetch the other two symbols
+  const others = SYMBOLS.filter(s => s !== active)
+  useSnapshot(others[0])
+  useSnapshot(others[1])
 
   return (
     <div className="min-h-screen bg-gray-950">

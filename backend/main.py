@@ -108,6 +108,7 @@ async def _premarket_job() -> None:
         chip_result = _chip[sym].compute()
         gex_result = _chip[sym].compute_gex(options, spot)
         pcr = _sentiment.compute_pcr(options)
+        flow_alerts = _options_scanner.scan(options, spot)
         snap = {
             **chip_result, **gex_result, **pcr,
             "spot": spot,
@@ -115,6 +116,7 @@ async def _premarket_job() -> None:
             "vvix_ratio": vix_data.get("ratio"),
             "options_count": len(options),
             "top_headlines": headlines,
+            "options_alerts": flow_alerts[:10],
         }
         snaps[sym] = snap
         await _cache.write_snapshot(sym, snap)
