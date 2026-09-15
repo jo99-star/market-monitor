@@ -1,6 +1,7 @@
 [build]
-  command = "cd frontend && npm install && npm run build"
-  publish = "frontend/out"
+  base    = "frontend"
+  command = "npm install && npm run build"
+  publish = "out"
 
 [build.environment]
   NEXT_PUBLIC_API_URL = "https://market-monitor-production-dbf8.up.railway.app"
