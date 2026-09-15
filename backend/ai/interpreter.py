@@ -41,19 +41,14 @@ class Interpreter:
             return {"bias": "unknown", "error": str(e), "summary": "API 错误"}
 
     def _build_prompt(self, d: dict) -> str:
+        spot = d.get("spot")
         lines = [
-            f"分析时间: {d.get('timestamp', 'N/A')}",
-            f"SPY: {d.get('spy_spot')} | QQQ: {d.get('qqq_spot', 'N/A')}",
-            f"大单净流: SPY {d.get('spy_net_flow', 0):+.0f} | QQQ {d.get('qqq_net_flow', 0):+.0f}",
-            f"VPOC: {d.get('vpoc')} | VAH: {d.get('vah')} | VAL: {d.get('val')}",
-            f"GEX信号: {d.get('gex_signal')} | GEX净值: {d.get('gex_net', 0):.0f}",
+            f"现价: {spot}",
+            f"VPOC: {d.get('vpoc')} | VAH: {d.get('vah')} | VAL: {d.get('val')} | VPOC偏向: {d.get('vpoc_bias')}",
+            f"GEX信号: {d.get('gex_signal')} | GEX净值: {d.get('gex_net', 0):.0f} | 最大痛点: {d.get('max_pain')}",
             f"OI PCR: {d.get('oi_pcr')} ({d.get('oi_pcr_signal')}) | Volume PCR: {d.get('vol_pcr')} ({d.get('vol_pcr_signal')})",
-            f"VIX: {d.get('vix')} | VVIX/VIX: {d.get('vvix_ratio', 'N/A')} (>1.2=短期恐慌脉冲)",
+            f"VIX: {d.get('vix')} | VVIX/VIX: {d.get('vvix_ratio', 'N/A')}",
         ]
-        if d.get("es_nq_trend"):
-            lines.append(f"ES/NQ隔夜走势: {d['es_nq_trend']}")
-        if d.get("economic_events"):
-            lines.append(f"今日经济日历: {d['economic_events']}")
         if d.get("options_alerts"):
             lines.append(f"期权异动(前3): {json.dumps(d['options_alerts'][:3], ensure_ascii=False)}")
         if d.get("top_headlines"):
