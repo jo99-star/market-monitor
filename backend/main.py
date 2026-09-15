@@ -184,7 +184,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://amazing-shortbread-e27dbd.netlify.app", "http://localhost:3000"],
     allow_methods=["GET"],
     allow_headers=["*"],
 )
