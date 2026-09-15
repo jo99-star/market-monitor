@@ -172,6 +172,7 @@ async def lifespan(app: FastAPI):
     ws_task = asyncio.create_task(_ws.run())
     routes.cache = _cache
     routes.symbols = settings.symbols
+    routes.premarket_handler = _premarket_job
     logger.info("Market monitor started")
     yield
     ws_task.cancel()
