@@ -41,15 +41,20 @@ async def test_reconnects_on_disconnect():
     assert len(connect_calls) == 2
 
 
-async def test_raises_after_max_retries():
+async def test_retries_indefinitely():
+    """_connect_with_backoff retries forever; verify it attempts > max_retries times."""
     ws = PolygonWebSocket(api_key="test", symbols=["SPY"])
-    ws._max_retries = 2
     ws._backoff_base = 0.001
+    ws._backoff_max = 0.001
+    attempt_count = []
 
     async def always_fail():
+        attempt_count.append(1)
+        if len(attempt_count) >= 25:
+            # Stop the loop by having it succeed on the 25th try
+            return
         raise ConnectionError("always")
 
     ws._connect_once = always_fail
-
-    with pytest.raises(ConnectionError):
-        await ws._connect_with_backoff()
+    await ws._connect_with_backoff()
+    assert len(attempt_count) == 25

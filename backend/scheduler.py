@@ -43,10 +43,18 @@ class MarketScheduler:
             replace_existing=True,
         )
         if self._options_refresh:
+            # Start at 9:25 (after premarket job at 9:15 has seeded chip profile)
+            # Stop after 15:50 to avoid post-close waste
             self._scheduler.add_job(
                 self._options_refresh,
-                CronTrigger(minute="*/10", hour="9-16", day_of_week="mon-fri", timezone=self._tz),
+                CronTrigger(minute="*/10", hour="10-15", day_of_week="mon-fri", timezone=self._tz),
                 id="options_refresh",
+                replace_existing=True,
+            )
+            self._scheduler.add_job(
+                self._options_refresh,
+                CronTrigger(hour=9, minute="25,35,45,55", day_of_week="mon-fri", timezone=self._tz),
+                id="options_refresh_9xx",
                 replace_existing=True,
             )
 

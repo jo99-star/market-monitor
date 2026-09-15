@@ -27,6 +27,16 @@ class PolygonWebSocket:
         subs = ",".join(f"T.{s}" for s in self._symbols)
         async with websockets.connect(WS_URL) as ws:
             await ws.send(json.dumps({"action": "auth", "params": self._key}))
+            # Read until auth_success (Polygon sends a "connected" frame first)
+            for _ in range(3):
+                raw = await asyncio.wait_for(ws.recv(), timeout=10.0)
+                msgs = json.loads(raw)
+                if any(m.get("status") == "auth_success" for m in msgs):
+                    break
+                if any(m.get("status") not in ("connected", "auth_success") for m in msgs):
+                    raise ConnectionError(f"Auth failed: {msgs}")
+            else:
+                raise ConnectionError("auth_success not received within 3 frames")
             await ws.send(json.dumps({"action": "subscribe", "params": subs}))
             while True:
                 try:
@@ -38,17 +48,22 @@ class PolygonWebSocket:
 
     async def _connect_with_backoff(self) -> None:
         delay = self._backoff_base
-        for attempt in range(self._max_retries):
+        attempt = 0
+        while True:
             try:
                 await self._connect_once()
-                return  # graceful close — stop reconnecting
-
+                return  # graceful close
             except Exception as e:
-                logger.warning(f"WS disconnect (attempt {attempt + 1}): {e}")
-                if attempt == self._max_retries - 1:
-                    raise
+                attempt += 1
+                logger.warning(f"WS disconnect (attempt {attempt}): {e}")
                 await asyncio.sleep(min(delay, self._backoff_max))
                 delay = min(delay * 2, self._backoff_max)
 
     async def run(self) -> None:
-        await self._connect_with_backoff()
+        # Outer loop: restart even after repeated failures — never give up
+        while True:
+            try:
+                await self._connect_with_backoff()
+            except Exception as e:
+                logger.error(f"WS fatal error, restarting in 60s: {e}")
+                await asyncio.sleep(60)

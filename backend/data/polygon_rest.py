@@ -1,7 +1,9 @@
+import logging
 import httpx
 from datetime import datetime, timedelta
 
 BASE = "https://api.polygon.io"
+logger = logging.getLogger(__name__)
 
 
 class PolygonREST:
@@ -20,6 +22,7 @@ class PolygonREST:
         while url:
             async with self._session.stream("GET", url, params=params) as r:
                 r.raise_for_status()
+                await r.aread()
                 data = r.json()
             results.extend(data.get("results", []))
             next_url = data.get("next_url")
@@ -55,10 +58,22 @@ class PolygonREST:
         return data.get("results", [])
 
     async def get_vix(self) -> dict:
-        """Fetch latest VIX and VVIX spot prices."""
-        vix = await self.get_spot_price("VIX")
-        vvix = await self.get_spot_price("VVIX")
-        return {"vix": vix, "vvix": vvix, "ratio": round(vvix / vix, 3) if vix else None}
+        """Fetch VIX and VVIX via indices snapshot (VIX is an index, not a stock)."""
+        try:
+            r = await self._session.get(
+                f"{BASE}/v3/snapshot/indices",
+                params={**self._p(), "ticker_any_of": "I:VIX,I:VVIX"},
+            )
+            r.raise_for_status()
+            results = r.json().get("results", [])
+            values = {item["ticker"]: item.get("value") for item in results}
+            vix = values.get("I:VIX")
+            vvix = values.get("I:VVIX")
+            ratio = round(vvix / vix, 3) if vix else None
+            return {"vix": vix, "vvix": vvix, "ratio": ratio}
+        except Exception as e:
+            logger.error(f"VIX fetch failed: {e}")
+            return {"vix": None, "vvix": None, "ratio": None}
 
     async def close(self):
         await self._session.aclose()

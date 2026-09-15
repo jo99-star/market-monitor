@@ -67,6 +67,14 @@ async def _handle_ai_task(task: dict) -> None:
 _call_queue = CallQueue(handler=_handle_ai_task)
 
 
+def _fire_task(coro) -> None:
+    task = asyncio.create_task(coro)
+    task.add_done_callback(
+        lambda t: logger.error(f"Background task failed: {t.exception()}")
+        if not t.cancelled() and t.exception() else None
+    )
+
+
 def _on_tick(tick: dict) -> None:
     sym = tick.get("sym")
     if sym not in _block_det:
@@ -76,8 +84,8 @@ def _on_tick(tick: dict) -> None:
     alerts = _block_det[sym].flush_alerts()
     for alert in alerts:
         if alert["level"] == "whale":
-            asyncio.create_task(_discord.send_block_alert(alert))
-            asyncio.create_task(_call_queue.enqueue({"priority": "whale", "type": "whale_block", "data": alert}))
+            _fire_task(_discord.send_block_alert(alert))
+            _fire_task(_call_queue.enqueue({"priority": "whale", "type": "whale_block", "data": alert}))
 
 
 _ws = PolygonWebSocket(api_key=settings.polygon_api_key, symbols=settings.symbols)
@@ -86,8 +94,12 @@ _ws.on_tick = _on_tick
 
 async def _premarket_job() -> None:
     logger.info("Running pre-market job")
-    snap = {}
+    vix_data = await _rest.get_vix()
+    news = await _rest.get_news(settings.symbols)
+    headlines = [a.get("title", "") for a in news[:5]]
+    snaps = {}
     for sym in settings.symbols:
+        _chip[sym] = ChipProfile()  # reset before loading new bars
         bars = await _rest.get_daily_bars(sym, days=20)
         for bar in bars:
             _chip[sym].add_bar(bar)
@@ -97,9 +109,6 @@ async def _premarket_job() -> None:
         chip_result = _chip[sym].compute()
         gex_result = _chip[sym].compute_gex(options, spot)
         pcr = _sentiment.compute_pcr(options)
-        vix_data = await _rest.get_vix()
-        news = await _rest.get_news(settings.symbols)
-        headlines = [a.get("title", "") for a in news[:5]]
         snap = {
             **chip_result, **gex_result, **pcr,
             "spot": spot,
@@ -108,8 +117,11 @@ async def _premarket_job() -> None:
             "options_count": len(options),
             "top_headlines": headlines,
         }
+        snaps[sym] = snap
         await _cache.write_snapshot(sym, snap)
-    await _call_queue.enqueue({"priority": "whale", "type": "premarket", "data": snap})
+    # Use first symbol (SPY) as primary data for AI interpretation
+    primary = snaps.get(settings.symbols[0], {})
+    await _call_queue.enqueue({"priority": "whale", "type": "premarket", "data": primary})
 
 
 async def _options_refresh_job() -> None:
@@ -125,7 +137,7 @@ async def _options_refresh_job() -> None:
             await _cache.write_snapshot(sym, snap)
             for alert in flow_alerts:
                 if alert["level"] == "whale":
-                    asyncio.create_task(_discord.send_options_alert(alert))
+                    _fire_task(_discord.send_options_alert(alert))
         except Exception as e:
             logger.error(f"Options refresh failed for {sym}: {e}")
 
@@ -159,6 +171,7 @@ async def lifespan(app: FastAPI):
     _scheduler.start()
     ws_task = asyncio.create_task(_ws.run())
     routes.cache = _cache
+    routes.symbols = settings.symbols
     logger.info("Market monitor started")
     yield
     ws_task.cancel()
@@ -171,7 +184,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://*.netlify.app", "http://localhost:3000"],
+    allow_origins=["*"],
     allow_methods=["GET"],
     allow_headers=["*"],
 )

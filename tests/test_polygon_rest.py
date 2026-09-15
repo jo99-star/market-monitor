@@ -59,12 +59,19 @@ async def test_get_news_returns_list(client):
 
 
 async def test_get_vix_returns_ratio(client):
-    prices = {"VIX": 18.0, "VVIX": 90.0}
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {
+        "results": [
+            {"ticker": "I:VIX", "value": 18.0},
+            {"ticker": "I:VVIX", "value": 90.0},
+        ]
+    }
 
-    async def fake_get_spot(symbol):
-        return prices[symbol]
+    async def fake_get(*a, **kw):
+        return mock_response
+    client._session.get = fake_get
 
-    client.get_spot_price = fake_get_spot
     result = await client.get_vix()
     assert result["vix"] == 18.0
     assert result["vvix"] == 90.0

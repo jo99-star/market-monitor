@@ -13,6 +13,13 @@ from httpx import AsyncClient, ASGITransport
 
 async def test_health_returns_ok():
     from backend.main import app
+    from backend.api import routes
+
+    mock_cache = AsyncMock()
+    mock_cache._redis = AsyncMock()
+    mock_cache._redis.ping = AsyncMock(return_value=True)
+
+    routes.cache = mock_cache
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         r = await client.get("/api/health")
     assert r.status_code == 200

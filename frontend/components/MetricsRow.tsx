@@ -28,7 +28,7 @@ export default function MetricsRow({ snap }: Props) {
       <Metric
         label="VIX"
         value={snap.vix != null ? fmt(snap.vix, 1) : '—'}
-        sub={snap.vix != null && snap.vix > 25 ? 'elevated' : 'calm'}
+        sub={snap.vix != null ? (snap.vix > 25 ? 'elevated' : 'calm') : undefined}
       />
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 flex-1 min-w-0">
         <div className="text-xs text-gray-500 uppercase tracking-wider">VVIX/VIX</div>

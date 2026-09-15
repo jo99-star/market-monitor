@@ -29,13 +29,14 @@ function formatGex(v: number) {
 export default function GexChart({ levels, spot }: Props) {
   // Show 30 strikes centered around spot price
   const sorted = [...levels].sort((a, b) => a.price - b.price)
-  const spotIdx = sorted.findIndex((l) => l.price >= spot)
+  const rawIdx = sorted.findIndex((l) => l.price >= spot)
+  const spotIdx = rawIdx === -1 ? sorted.length - 1 : rawIdx
   const start = Math.max(0, spotIdx - 15)
   const data = sorted.slice(start, start + 30)
 
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-600 text-sm">
+      <div className="flex items-center justify-center h-56 text-gray-600 text-sm">
         No GEX data
       </div>
     )

@@ -3,11 +3,18 @@ from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
 router = APIRouter()
-cache = None  # injected at startup via main.py
+cache = None       # injected at startup
+symbols: list = [] # injected at startup
 
 
 @router.get("/api/health")
 async def health():
+    if cache is None:
+        return JSONResponse(status_code=503, content={"status": "starting"})
+    try:
+        await cache._redis.ping()
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "redis_down"})
     return {"status": "ok"}
 
 
@@ -21,14 +28,7 @@ async def snapshot(symbol: str = Query(default="SPY")):
 
 @router.get("/api/snapshot/all")
 async def snapshot_all():
-    from backend.config import Settings
-    s = Settings(
-        polygon_api_key="x",
-        anthropic_api_key="x",
-        discord_webhook_url="x",
-        redis_url="x",
-    )
     result = {}
-    for sym in s.symbols:
+    for sym in symbols:
         result[sym.lower()] = await cache.read_snapshot(sym) or {}
     return result

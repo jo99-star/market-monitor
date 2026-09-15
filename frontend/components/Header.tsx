@@ -43,9 +43,9 @@ export default function Header({ activeSymbol, symbols, snapshot, loading, onSym
             {age.stale ? '⚠ ' : ''}updated {age.text}
           </span>
         )}
-        <span className={`flex items-center gap-1 ${loading ? 'text-gray-500' : 'text-green-400'}`}>
-          <span className={`w-2 h-2 rounded-full ${loading ? 'bg-gray-500' : 'bg-green-400 animate-pulse'}`} />
-          LIVE
+        <span className={`flex items-center gap-1 ${loading ? 'text-gray-500' : age?.stale ? 'text-yellow-400' : 'text-green-400'}`}>
+          <span className={`w-2 h-2 rounded-full ${loading ? 'bg-gray-500' : age?.stale ? 'bg-yellow-400' : 'bg-green-400 animate-pulse'}`} />
+          {age?.stale ? 'STALE' : 'LIVE'}
         </span>
       </div>
     </header>
